@@ -1,0 +1,46 @@
+# ============================================================
+# MPLAB X IDE - PIC32 Projesi .gitignore
+# ============================================================
+
+# --- Derleme Çıktıları (Build Output) ---
+second.X/build/
+second.X/dist/
+second.X/debug/
+second.X/second_default/
+
+# --- MPLAB X Otomatik Üretilen Dosyalar ---
+second.X/.generated_files/
+second.X/defmplabxtrace.log
+second.X/defmplabxtrace.log.inx
+
+# --- nbproject içindeki geçici / kullanıcıya özel dosyalar ---
+second.X/nbproject/private/
+second.X/nbproject/Makefile-*.mk
+second.X/nbproject/Package-*.bash
+
+# --- MCC (MPLAB Code Configurator) otomatik kayıt dosyaları ---
+second.X/mcc-manifest-autosave.yml
+
+# --- Windows sistem dosyaları ---
+Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# --- Editör / IDE geçici dosyaları ---
+*.swp
+*.swo
+*~
+.vscode/
+.vs/
+
+# --- Genel derleme atıkları ---
+*.o
+*.d
+*.map
+*.elf
+*.hex
+*.lst
+*.a
+
+# --- Log dosyaları ---
+*.log
