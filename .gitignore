@@ -16,6 +16,7 @@ second.X/defmplabxtrace.log.inx
 # --- nbproject içindeki geçici / kullanıcıya özel dosyalar ---
 second.X/nbproject/private/
 second.X/nbproject/Makefile-*.mk
+second.X/nbproject/Makefile-genesis.properties
 second.X/nbproject/Package-*.bash
 
 # --- MCC (MPLAB Code Configurator) otomatik kayıt dosyaları ---
