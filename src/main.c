@@ -44,6 +44,85 @@ static void delay_ms(uint32_t ms)
     uint32_t start = timer_tick;
     while ((timer_tick - start) < ms);
 }
+
+static bool SII9022_Start(void)
+{
+    SII9022_AudioCfg_t audio;
+ 
+    /* 1. Donan?m resetle + TPI aktif + chip ID do?rula + D0 güç */
+    if (!SII9022_Init())
+        return false;
+ 
+    /* 2. Video modu: 1280x720 @ 60Hz (CEA VIC=4) */
+    if (!SII9022_SetVideoMode_720p60())
+        return false;
+ 
+    /* 3. HDMI cikis modu sec (DVI icin false) */
+    SII9022_SetOutputMode(true);
+ 
+    /* 4. Ses: 48 kHz stereo I2S (ses yoksa atlayabilirsin) */
+    audio.enable     = true;
+    audio.mute       = false;
+    audio.sampleRate = 48000U;
+    SII9022_ConfigureAudio(&audio);
+ 
+    /* 5. TMDS ac ? goruntu ve ses aktarimi baslar */
+    if (!SII9022_EnableTMDS(true))
+        return false;
+ 
+    return true;
+}
+
+static bool SI5351_Start(void)
+{
+    /* 1) Yaz?l?m yap?s?n? s?f?rla */
+    si5351_init_dev(&si5351, SI5351_BUS_BASE_ADDR);   /* I2C adresi: 0x60 */
+ 
+    /* 2) Donan?m kaydedicilerini yap?land?r
+     *    - 10 pF kristal yükü  (pcb'ye göre 6/8/10 pF seç)
+     *    - 25 MHz referans kristal
+     *    - 0 frekans düzeltmesi (kalibrasyon sonras? de?i?tirilebilir)    */
+    if (!si5351_init(&si5351,
+                     SI5351_CRYSTAL_LOAD_10PF,  /* kristal yük kap. */
+                     25000000UL,                /* xtal = 25 MHz    */
+                     0))                        /* düzeltme = 0     */
+    {
+        return false;
+    }
+ 
+    /* 3) CLK0 PLL atamas?: PLLA
+     *    CLK1 PLL atamas?: PLLB  (ba??ms?z frekans için ayr? PLL) */
+    si5351_set_ms_source(&si5351, SI5351_CLK0, SI5351_PLLA);
+    si5351_set_ms_source(&si5351, SI5351_CLK1, SI5351_PLLB);
+ 
+    /* 4) CLK0 ? 74.25 MHz  (Hz × 100 = centi-Hz birimi)
+     *    720p HDMI pixel clock                                        */
+    if (si5351_set_freq(&si5351,
+                        7425000000ULL,    /* 74 250 000 Hz × 100 */
+                        SI5351_CLK0) != 0)
+    {
+        return false;
+    }
+ 
+    /* 5) CLK1 ? 25.000 MHz  (Ethernet PHY REFCLK veya genel referans) */
+    if (si5351_set_freq(&si5351,
+                        2500000000ULL,    /* 25 000 000 Hz × 100 */
+                        SI5351_CLK1) != 0)
+    {
+        return false;
+    }
+ 
+    /* 6) Sürücü gücü ayarla */
+    si5351_drive_strength(&si5351, SI5351_CLK0, SI5351_DRIVE_8MA);
+    si5351_drive_strength(&si5351, SI5351_CLK1, SI5351_DRIVE_4MA);
+ 
+    /* 7) Ç?k??lar? etkinle?tir */
+    si5351_output_enable(&si5351, SI5351_CLK0, 1);
+    si5351_output_enable(&si5351, SI5351_CLK1, 1);
+ 
+    return true;
+}
+
 // 1. Kesme an?nda çal??acak fonksiyonun (Callback)
 
 unsigned int test;
@@ -103,9 +182,24 @@ int main(void)
 
     LED_IO1_Clear();
     LED_IO2_Clear();
-
+    
     /* 2. Ad?m: I2C ve Si5351 ba?lat */
     i2c_master_init();
+    if (!SI5351_Start())
+    {
+        while (1)
+        {
+            /* TODO: hata göstergesi */
+        }
+    }
+    delay_ms(100);
+
+    if (!SII9022_Start())
+    {
+        /* Hata: HDMI TX bulunamad?, HPD yok veya chip ID uyumsuz */
+        while (1) { /* LED yak / UART'a yaz */ }
+    }
+    
     delay_ms(100);
 
     if (!si5351_setup())
